@@ -59,31 +59,28 @@ __global__ void MC_k(float S_0, float I_0, float r, float sigma, float sqrt_dt, 
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	curandState localState = state[idx];
 
-	float2 G;
 	float S = S_0;
 	float I = I_0;
 
-	float R1s, R2s;
-
-
 	for (int n_dt = 0; n_dt < N_cuts; n_dt++) {
-		G_out = curand_normal(&localState);
+		float G_out = curand_normal(&localState);
 		S *= (1+r*sqrt_dt*sqrt_dt+sigma*sqrt_dt*G_out); // Euler 
 		I = (n_dt+1.0f * I + S)/(n_dt+2.0f);
 
-		float R1 = 0
-		float R2 = 0
+		float R1 = 0;
+		float R2 = 0;
 		for (int j = 0; j < M; j++) {
 			float S_in = S;
 			float I_in = I;
 			for (int n_dt_internal = 0; n_dt_internal < N_cuts - (n_dt+1); n_dt_internal++) {
-				G_in = curand_normal(&localState);
+				float G_in = curand_normal(&localState);
 				S_in *= (1+r*sqrt_dt*sqrt_dt+sigma*sqrt_dt*G_in); 
 				I_in = (n_dt_internal+1.0f * I_in + S_in)/(n_dt_internal+2.0f);
 			}
 			R1 += expf(-r * sqrt_dt * sqrt_dt * N_cuts) * fmaxf(0.0f, S_in - I_in) / M;
 			R2 += R1 * R1 * M;
 		}
+
 		d_samples[idx] = n_dt * sqrt_dt * sqrt_dt;
 		d_samples[idx+1] = S;
 		d_samples[idx+2] = I;
@@ -103,7 +100,7 @@ int main(void) {
 
 	float T = 1.0f;
 	float S_0 = 100.0f;
-	float I_0 = 100.0f
+	float I_0 = 100.0f;
 
 	int N_sim = 1000000;
 	int N_cuts = 100;
@@ -112,7 +109,8 @@ int main(void) {
 
 	float sigma = 0.2f;
 	float r = 0.1f;
-	float sqrt_dt = sqrtf(T/N);
+
+	float sqrt_dt = sqrtf(T/N_cuts);
 
 	float* d_samples;
 	cudaMallocManaged(&d_samples, 5*N_sim*N_cuts*sizeof(float));
@@ -128,7 +126,7 @@ int main(void) {
 	cudaEventCreate(&stop);				// GPU timer instructions
 	cudaEventRecord(start, 0);			// GPU timer instructions
 
-	MC_k<<<NB, NTPB, 2*NTPB*sizeof(float)>>>(S_0, r, sigma, dt, K, N, states, sum, n);
+	MC_k<<<NB, NTPB>>>(S_0, I_0, r, sigma, sqrt_dt, N_cuts, M, states, d_samples);
 
 	cudaEventRecord(stop, 0);					// GPU timer instructions
 	cudaEventSynchronize(stop);					// GPU timer instructions
