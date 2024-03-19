@@ -137,12 +137,15 @@ int main(void) {
 	cudaEventDestroy(stop);						// GPU timer instructions
 
 
-	printf("The estimated price is equal to %f\n", sum[0]);
-	printf("error associated to a confidence interval of 95%% = %f\n", 1.96 * sqrt((double)(sum[1] - (sum[0] * sum[0])))/sqrt((double)n));
-	printf("The true price %f\n", S_0 * NP((r + 0.5 * sigma * sigma)/sigma) - K * expf(-r) * NP((r - 0.5 * sigma * sigma) / sigma));
+	// printf("The estimated price is equal to %f\n", sum[0]);
+	// printf("error associated to a confidence interval of 95%% = %f\n", 1.96 * sqrt((double)(sum[1] - (sum[0] * sum[0])))/sqrt((double)n));
+	// printf("The true price %f\n", S_0 * NP((r + 0.5 * sigma * sigma)/sigma) - K * expf(-r) * NP((r - 0.5 * sigma * sigma) / sigma));
+	
+	printf("First Sample: [%f, %f, %f, %f, %f]\n", d_samples[0], d_samples[1], d_samples[2], d_samples[3], d_samples[4])
 	printf("Execution time %f ms\n", Tim);
 
-	cudaFree(sum);
+
+	cudaFree(d_samples);
 	cudaFree(states);
 
 	return 0;
